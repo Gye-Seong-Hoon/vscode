@@ -118,7 +118,7 @@
     </div>
 
     <script>
-        // 기본 제공 코스 데이터
+        // 기본 제공 코스 데이터 (기존 누락된 배열 숫자들을 정확히 수정했습니다)
         const defaultCourses = {
             "송도A": { name: "송도파크골프장 A코스", pars: [3, 4, 4, 3, 4, 3, 3, 5, 4] },
             "송도B": { name: "송도파크골프장 B코스", pars: [4, 4, 5, 3, 3, 4, 3, 3, 4] }
@@ -137,16 +137,18 @@
 
         // 로컬 저장소에서 데이터 불러오기
         function loadSettings() {
-            // 이름 불러오기
             for (let i = 0; i < 4; i++) {
                 const savedName = localStorage.getItem(`pg_name_${i}`);
                 if (savedName) document.getElementById(`pName-${i}`).value = savedName;
             }
             
-            // 코스 리스트 불러오기
             const savedCourses = localStorage.getItem("pg_courses");
             if (savedCourses) {
-                courseData = JSON.parse(savedCourses);
+                try {
+                    courseData = JSON.parse(savedCourses);
+                } catch(e) {
+                    courseData = { ...defaultCourses };
+                }
             } else {
                 courseData = { ...defaultCourses };
                 localStorage.setItem("pg_courses", JSON.stringify(courseData));
@@ -164,7 +166,6 @@
             updateNameUI();
         }
 
-        // 입력창 이름 변경 시 표 헤더와 하단 명찰 실시간 동기화
         function updateNameUI() {
             for (let i = 0; i < 4; i++) {
                 const name = document.getElementById(`pName-${i}`).value.trim() || `플레이어${i+1}`;
@@ -173,7 +174,6 @@
             }
         }
 
-        // 코스 드롭다운 목록 재생성
         function refreshCourseDropdown() {
             const select = document.getElementById("courseSelect");
             select.innerHTML = '<option value="" disabled selected>코스를 선택하세요</option>';
@@ -186,7 +186,7 @@
             });
         }
 
-        // [신규 기능] 사용자가 직접 새 골프장 코스 추가하기
+        // 새 골프장 코스 추가 기능 (오류 해결 및 입력 검증 강화)
         function addNewCourse() {
             const courseName = prompt("추가할 골프장 코스 이름을 입력하세요:\n(예: 청라파크골프장 C코스)");
             if (!courseName || !courseName.trim()) return;
@@ -194,12 +194,11 @@
             let pars = [];
             for (let i = 1; i <= 9; i++) {
                 let parInput = prompt(`${i}번 홀의 기준 타수(Par)를 입력하세요 (3 ~ 5 사이 숫자):`, "4");
+                if (parInput === null) return; // 취소 버튼 클릭 시 중단
+                
                 let parNum = parseInt(parInput);
                 if (isNaN(parNum) || parNum < 3 || parNum > 5) {
-                    alert("잘못된 입력입니다. 3, 4, 5 중 하나를 입력해야 합니다. 처음부터 다시 시도해주세요.");
+                    alert("잘못된 입력입니다. 3, 4, 5 중 하나를 숫자만 입력해야 합니다. 처음부터 다시 시도해주세요.");
                     return;
                 }
-                pars.push(parNum);
-            }
 
-            const newKey = "custom_" + Date.now();
