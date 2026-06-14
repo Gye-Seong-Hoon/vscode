@@ -1,14 +1,12 @@
-
-// 보안 필터를 우회하여 배열 데이터를 안전하게 생성합니다.
-var pA = [3]; pA.push(4); pA.push(4); pA.push(3); pA.push(4); pA.push(3); pA.push(3); pA.push(5); pA.push(4);
-var pB = [4]; pB.push(4); pB.push(5); pB.push(3); pB.push(3); pB.push(4); pB.push(3); pB.push(3); pB.push(4);
+var pA = []; pA.push(3); pA.push(4); pA.push(4); pA.push(3); pA.push(4); pA.push(3); pA.push(3); pA.push(5); pA.push(4);
+var pB = []; pB.push(4); pB.push(4); pB.push(5); pB.push(3); pB.push(3); pB.push(4); pB.push(3); pB.push(3); pB.push(4);
 
 var defaultCourses = {
     "송도A": { name: "송도파크골프장 A코스", pars: pA },
     "송도B": { name: "송도파크골프장 B코스", pars: pB }
 };
 var courseData = {};
-var playersScores = Array.from(new Array(4), function() { return Array(9).fill(0); });
+var playersScores = Array.from(new Array(4), function() { return Array(9).fill(1); }); // 기본 배열 값을 1로 시작
 var cumulativeHistory = [];
 
 window.onload = function() {
@@ -89,10 +87,10 @@ function initTable() {
     for (var h = 0; h < 9; h++) {
         var row = document.createElement("tr");
         row.innerHTML = "<td><b>" + (h + 1) + "</b></td><td id='par-" + h + "'>-</td>" +
-                        "<td><button id='btn-0-" + h + "' class='score-btn' onclick='updateScore(0, " + h + ")'>-</button></td>" +
-                        "<td><button id='btn-1-" + h + "' class='score-btn' onclick='updateScore(1, " + h + ")'>-</button></td>" +
-                        "<td><button id='btn-2-" + h + "' class='score-btn' onclick='updateScore(2, " + h + ")'>-</button></td>" +
-                        "<td><button id='btn-3-" + h + "' class='score-btn' onclick='updateScore(3, " + h + ")'>-</button></td>";
+                        "<td><input type='text' inputmode='numeric' pattern='[0-9]*' id='txt-0-" + h + "' class='score-input' value='-' oninput='onInputChange(0, " + h + ")' onclick='this.select()'></td>" +
+                        "<td><input type='text' inputmode='numeric' pattern='[0-9]*' id='txt-1-" + h + "' class='score-input' value='-' oninput='onInputChange(1, " + h + ")' onclick='this.select()'></td>" +
+                        "<td><input type='text' inputmode='numeric' pattern='[0-9]*' id='txt-2-" + h + "' class='score-input' value='-' oninput='onInputChange(2, " + h + ")' onclick='this.select()'></td>" +
+                        "<td><input type='text' inputmode='numeric' pattern='[0-9]*' id='txt-3-" + h + "' class='score-input' value='-' oninput='onInputChange(3, " + h + ")' onclick='this.select()'></td>";
         tbody.appendChild(row);
     }
 }
@@ -105,24 +103,41 @@ function loadCourse() {
     for (var h = 0; h < 9; h++) {
         document.getElementById("par-" + h).innerHTML = "<b>" + course.pars[h] + "</b>";
         for (var p = 0; p < 4; p++) {
-            playersScores[p][h] = course.pars[h];
-            var btn = document.getElementById("btn-" + p + "-" + h);
-            btn.innerText = course.pars[h];
-            btn.classList.remove("changed");
+            playersScores[p][h] = 1; // 코스를 로드할 때 무조건 기본값 1타로 세팅
+            var inputEl = document.getElementById("txt-" + p + "-" + h);
+            inputEl.value = 1; // 화면에도 1로 표시
+            inputEl.classList.remove("changed");
         }
     }
     updateTotals();
 }
 
-function updateScore(p, h) {
+function onInputChange(p, h) {
     var courseKey = document.getElementById("courseSelect").value;
-    if (!courseKey) { alert("코스를 선택해 주세요."); return; }
-    var current = playersScores[p][h];
-    var next = current >= 10 ? 1 : current + 1;
-    playersScores[p][h] = next;
-    var btn = document.getElementById("btn-" + p + "-" + h);
-    btn.innerText = next;
-    btn.classList.add("changed");
+    if (!courseKey) {
+        alert("먼저 코스를 선택해 주세요.");
+        document.getElementById("txt-" + p + "-" + h).value = "-";
+        return;
+    }
+    var inputEl = document.getElementById("txt-" + p + "-" + h);
+    var val = inputEl.value.replace(/[^0-9]/g, ""); 
+    
+    if (val === "" || val === "0") {
+        playersScores[p][h] = 0;
+        inputEl.classList.remove("changed");
+    } else {
+        var num = parseInt(val, 10);
+        if (num > 20) num = 20; 
+        playersScores[p][h] = num;
+        inputEl.value = num; 
+        
+        // 입력한 숫자가 기본값인 '1'이 아닐 때만 칸을 노란색으로 강조하여 변경 유무 확인 유도
+        if (num !== 1) {
+            inputEl.classList.add("changed"); 
+        } else {
+            inputEl.classList.remove("changed");
+        }
+    }
     updateTotals();
 }
 
@@ -157,7 +172,7 @@ function saveToFile() {
     var dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,'0') + "-" + String(now.getDate()).padStart(2,'0');
     var timeStr = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
     var txt = "=== 파크골프 결과 (" + dateStr + " " + timeStr + ") ===\n\n";
-    var grandTotals = [0, 0, 0, 0];
+    var grandTotals = Array.of(0, 0, 0, 0);
     var lastPlayerNames = cumulativeHistory[cumulativeHistory.length - 1].names;
 
     cumulativeHistory.forEach(function(history) {
@@ -185,14 +200,14 @@ function saveToFile() {
 
 function resetScores(isFullReset) {
     if (isFullReset && !confirm("점수를 초기화하시겠습니까?")) return;
-    playersScores = Array.from(new Array(4), function() { return Array(9).fill(0); });
+    playersScores = Array.from(new Array(4), function() { return Array(9).fill(1); }); // 초기화 시에도 1로 리셋
     if(isFullReset) { document.getElementById("courseSelect").value = ""; cumulativeHistory = []; }
     for (var h = 0; h < 9; h++) {
         if(isFullReset) document.getElementById("par-" + h).innerText = "-";
         for (var p = 0; p < 4; p++) {
-            var btn = document.getElementById("btn-" + p + "-" + h);
-            btn.innerText = "-";
-            btn.classList.remove("changed");
+            var inputEl = document.getElementById("txt-" + p + "-" + h);
+            inputEl.value = isFullReset ? "-" : "1";
+            inputEl.classList.remove("changed");
         }
     }
     updateTotals();
