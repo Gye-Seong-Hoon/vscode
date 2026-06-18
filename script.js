@@ -6,13 +6,14 @@ var defaultCourses = {
     "송도B": { name: "송도파크골프장 B코스", pars: pB }
 };
 var courseData = {};
-var playersScores = Array.from(new Array(4), function() { return Array(9).fill(1); }); // 기본 배열 값을 1로 시작
+var playersScores = Array.from(new Array(4), function() { return Array(9).fill(1); });
 var cumulativeHistory = [];
 
 window.onload = function() {
     loadSettings(); 
     initTable();
     updateNameUI();
+    checkTemporaryStorage(); // 입장 시 중간 저장된 기록이 있는지 검사
 };
 
 function loadSettings() {
@@ -37,6 +38,7 @@ function saveSettings() {
         localStorage.setItem("pg_name_" + i, nameVal);
     }
     updateNameUI();
+    autoSaveCurrentState();
 }
 
 function updateNameUI() {
@@ -103,13 +105,14 @@ function loadCourse() {
     for (var h = 0; h < 9; h++) {
         document.getElementById("par-" + h).innerHTML = "<b>" + course.pars[h] + "</b>";
         for (var p = 0; p < 4; p++) {
-            playersScores[p][h] = 1; // 코스를 로드할 때 무조건 기본값 1타로 세팅
+            playersScores[p][h] = 1; 
             var inputEl = document.getElementById("txt-" + p + "-" + h);
-            inputEl.value = 1; // 화면에도 1로 표시
+            inputEl.value = 1; 
             inputEl.classList.remove("changed");
         }
     }
     updateTotals();
+    autoSaveCurrentState();
 }
 
 function onInputChange(p, h) {
@@ -131,20 +134,69 @@ function onInputChange(p, h) {
         playersScores[p][h] = num;
         inputEl.value = num; 
         
-        // 입력한 숫자가 기본값인 '1'이 아닐 때만 칸을 노란색으로 강조하여 변경 유무 확인 유도
-        if (num !== 1) {
-            inputEl.classList.add("changed"); 
-        } else {
-            inputEl.classList.remove("changed");
-        }
+        if (num !== 1) { inputEl.classList.add("changed"); } 
+        else { inputEl.classList.remove("changed"); }
     }
     updateTotals();
+    autoSaveCurrentState(); // 점수가 바뀔 때마다 실시간 백업
 }
 
 function updateTotals() {
     for (var p = 0; p < 4; p++) {
         var sum = playersScores[p].reduce(function(a, b) { return a + b; }, 0);
         document.getElementById("total-" + p).innerText = sum + "타";
+    }
+}
+
+// [신규] 실시간 자동 저장 기능 (LocalStorage 캐싱)
+function autoSaveCurrentState() {
+    var courseKey = document.getElementById("courseSelect").value;
+    var state = {
+        courseKey: courseKey,
+        scores: playersScores,
+        history: cumulativeHistory
+    };
+    localStorage.setItem("pg_backup_state", JSON.stringify(state));
+}
+
+// [신규] 앱 켰을 때 가동 중이던 기록 복원 검사 함수
+function checkTemporaryStorage() {
+    var backup = localStorage.getItem("pg_backup_state");
+    if (!backup) return;
+    
+    try {
+        var state = JSON.parse(backup);
+        if (!state.courseKey) return; // 코스 선택 전 빈 상태면 패스
+        
+        if (confirm("이전에 기록 중이던 라운딩 점수가 있습니다.\n그대로 불러와서 이어서 작성하시겠습니까?")) {
+            cumulativeHistory = state.history || [];
+            document.getElementById("courseSelect").value = state.courseKey;
+            
+            var course = courseData[state.courseKey];
+            if (!course) return;
+            
+            // 기존 테이블 복구 기동
+            for (var h = 0; h < 9; h++) {
+                document.getElementById("par-" + h).innerHTML = "<b>" + course.pars[h] + "</b>";
+                for (var p = 0; p < 4; p++) {
+                    var savedScore = state.scores[p][h];
+                    playersScores[p][h] = savedScore;
+                    
+                    var inputEl = document.getElementById("txt-" + p + "-" + h);
+                    inputEl.value = savedScore === 0 ? "" : savedScore;
+                    
+                    if (savedScore !== 1 && savedScore !== 0) {
+                        inputEl.classList.add("changed");
+                    }
+                }
+            }
+            updateTotals();
+        } else {
+            // 불러오기 거부 시 백업 삭제 처리
+            localStorage.removeItem("pg_backup_state");
+        }
+    } catch(e) {
+        console.log("백업 복원 실패", e);
     }
 }
 
@@ -161,6 +213,7 @@ function finishCourse() {
         scores: playersScores.map(function(arr) { return arr.slice(); })
     });
     alert("[" + courseData[courseKey].name + "] 기록이 임시 저장되었습니다.");
+    autoSaveCurrentState();
 }
 
 function saveToFile() {
@@ -192,23 +245,4 @@ function saveToFile() {
 
     var blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
     var link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "파크골프_결과_" + dateStr.replace(/-/g,'') + ".txt";
-    link.click();
-    cumulativeHistory = []; 
-}
 
-function resetScores(isFullReset) {
-    if (isFullReset && !confirm("점수를 초기화하시겠습니까?")) return;
-    playersScores = Array.from(new Array(4), function() { return Array(9).fill(1); }); // 초기화 시에도 1로 리셋
-    if(isFullReset) { document.getElementById("courseSelect").value = ""; cumulativeHistory = []; }
-    for (var h = 0; h < 9; h++) {
-        if(isFullReset) document.getElementById("par-" + h).innerText = "-";
-        for (var p = 0; p < 4; p++) {
-            var inputEl = document.getElementById("txt-" + p + "-" + h);
-            inputEl.value = isFullReset ? "-" : "1";
-            inputEl.classList.remove("changed");
-        }
-    }
-    updateTotals();
-}
