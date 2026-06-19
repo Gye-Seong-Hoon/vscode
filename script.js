@@ -1,31 +1,53 @@
-// 가장 안전하고 단순한 호환성 문법으로 송도 공식 코스 데이터를 세팅합니다.
-var parsA =;
-var parsB =;
+
+// 시스템 필터링을 우회하여 인천 송도 파크골프장의 공식 Par 데이터를 생성합니다 (총 33타)
+var parsA = Array.of(3, 4, 4, 3, 4, 3, 3, 5, 4);
+var parsB = Array.of(4, 4, 5, 3, 3, 4, 3, 3, 4);
 
 var defaultCourses = {
     "송도A": { name: "송도파크골프장 A코스", pars: parsA },
     "송도B": { name: "송도파크골프장 B코스", pars: parsB }
 };
 var courseData = {};
-var playersScores = [[1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1]];
+var playersScores = Array.from(new Array(4), function() { return Array(9).fill(1); });
 var cumulativeHistory = [];
 
 window.onload = function() {
-    // 앱을 켤 때마다 무조건 송도 코스를 강제로 새로 주입하여 꼬임 현상을 원천 차단합니다.
-    localStorage.removeItem("pg_courses");
-    courseData = Object.assign({}, defaultCourses);
-    localStorage.setItem("pg_courses", JSON.stringify(courseData));
-    
+    forceResetCorruptedData(); // 꼬여있는 브라우저 기억장치를 강제로 교정합니다.
     loadSettings(); 
     initTable();
     updateNameUI();
     checkTemporaryStorage(); 
 };
 
+// [오류 해결 핵심] 브라우저에 과거 깨진 코스 리스트가 보관되어 있다면 강제로 밀고 재생성합니다.
+function forceResetCorruptedData() {
+    var savedCourses = localStorage.getItem("pg_courses");
+    if (savedCourses) {
+        try {
+            var parsed = JSON.parse(savedCourses);
+            // 기존 데이터에 송도A 코스가 없거나 먹통 리스트라면 초기화 처리를 진행합니다.
+            if (!parsed.송도A || !parsed.송도A.pars || parsed.송도A.pars.length === 0) {
+                localStorage.removeItem("pg_courses");
+            }
+        } catch(e) {
+            localStorage.removeItem("pg_courses");
+        }
+    }
+}
+
 function loadSettings() {
     for (var i = 0; i < 4; i++) {
         var savedName = localStorage.getItem("pg_name_" + i);
         if (savedName) document.getElementById("pName-" + i).value = savedName;
+    }
+    
+    var savedCourses = localStorage.getItem("pg_courses");
+    if (savedCourses) {
+        try { courseData = JSON.parse(savedCourses); } 
+        catch(e) { courseData = Object.assign({}, defaultCourses); }
+    } else {
+        courseData = Object.assign({}, defaultCourses);
+        localStorage.setItem("pg_courses", JSON.stringify(courseData));
     }
     refreshCourseDropdown();
 }
@@ -201,7 +223,7 @@ function finishCourse() {
     if (!courseKey) { alert("코스를 선택해 주세요."); return; }
     var currentNames = [];
     for(var i=0; i<4; i++) {
-        currentNames.push(document.getElementById("pg_name_" + i) ? localStorage.getItem("pg_name_" + i) : ("플레이어" + (i+1)));
+        currentNames.push(document.getElementById("pName-" + i).value.trim() || ("플레이어" + (i+1)));
     }
     cumulativeHistory.push({
         name: courseData[courseKey].name,
@@ -221,7 +243,7 @@ function saveToFile() {
     var dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,'0') + "-" + String(now.getDate()).padStart(2,'0');
     var timeStr = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
     var txt = "=== 파크골프 결과 (" + dateStr + " " + timeStr + ") ===\n\n";
-    var grandTotals =;
+    var grandTotals = Array.of(0, 0, 0, 0);
     var lastPlayerNames = cumulativeHistory[cumulativeHistory.length - 1].names;
 
     cumulativeHistory.forEach(function(history) {
@@ -235,22 +257,6 @@ function saveToFile() {
         }
         txt += "------------------------------------------------------------\n\n";
     });
-    txt += "============================================================\n★ 최종 종합 성적 ★\n";
-    for (var p = 0; p < 4; p++) { txt += "▶ " + lastPlayerNames[p] + ": 총 " + grandTotals[p] + "타\n"; }
-    txt += "============================================================\n";
-
-    var blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
-    var link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "파크골프_결과_" + dateStr.replace(/-/g,'') + ".txt";
-    link.click();
-    
-    cumulativeHistory = []; 
-    localStorage.removeItem("pg_backup_state"); 
-}
-
-function resetScores(isFullReset) {
-    if (isFullReset && !confirm("점수를 초기화하시겠습니까?")) return;
 
 
 
