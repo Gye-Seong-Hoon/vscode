@@ -1,5 +1,147 @@
-<<<<<<< HEAD
-=======
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파크골프 4인 스코어 매니저</title>
+    <style>
+        :root {
+            --primary-color: #1b5e20;
+            --secondary-color: #0d47a1;
+            --danger-color: #b71c1c;
+            --bg-color: #f1f3f5;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+        body { background-color: var(--bg-color); padding: 8px; color: #111; }
+        
+        header { text-align: center; margin: 8px 0; }
+        header h1 { font-size: 1.5rem; color: var(--primary-color); font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        header p { font-size: 0.85rem; color: #444; margin-top: 3px; font-weight: bold; }
+
+        .config-section { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); margin-bottom: 12px; border: 1px solid #ced4da; }
+        .config-title { font-size: 1rem; font-weight: 900; margin-bottom: 8px; color: #222; border-left: 4px solid var(--primary-color); padding-left: 6px; }
+        
+        .player-inputs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+        .player-inputs input { width: 100%; padding: 10px 4px; text-align: center; font-size: 0.95rem; border: 2px solid #adb5bd; border-radius: 6px; font-weight: 900; color: #000; }
+        .player-inputs input:focus { border-color: var(--primary-color); outline: none; background-color: #e8f5e9; }
+
+        .course-manage { display: flex; gap: 6px; margin-bottom: 5px; }
+        .select-box { flex: 1; padding: 12px; font-size: 1.05rem; border: 2.5px solid var(--primary-color); border-radius: 6px; background: white; font-weight: 900; color: #000; }
+        .btn-add-course { padding: 0 14px; font-size: 0.95rem; background-color: #343a40; color: white; border: none; border-radius: 6px; font-weight: 900; cursor: pointer; }
+
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.15); overflow-x: auto; margin-bottom: 12px; border: 1px solid #ced4da; }
+        table { width: 100%; border-collapse: collapse; text-align: center; min-width: 340px; table-layout: fixed; }
+        th, td { padding: 4px 2px; border: 1px solid #dee2e6; font-size: 1rem; }
+        th { background-color: #d4edda; font-weight: 900; color: #111; height: 40px; }
+        th.player-th { background-color: #cce5ff; width: 17%; }
+        th.player-th span { display: block; max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 auto; font-weight: 900; }
+        
+        td b { font-size: 1.1rem; font-weight: 900; }
+
+        .score-input { width: 96%; height: 52px; font-size: 1.6rem; font-weight: 900; text-align: center; border: 2px solid #868e96; border-radius: 6px; background-color: #f8f9fa; color: #000; -webkit-appearance: none; margin: 0 auto; display: block; }
+        .score-input.changed { background-color: #fff3cd; border-color: #ffc107; color: #856404; }
+        .score-input:focus { background-color: #d1ecf1; border-color: var(--secondary-color); outline: none; color: #0c5460; }
+
+        .total-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: #212529; padding: 12px; border-radius: 8px; color: white; text-align: center; margin-bottom: 12px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+        .total-box { font-size: 0.9rem; overflow: hidden; font-weight: bold; }
+        .total-box .name-tag { max-width: 75px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 auto; color: #f8f9fa; font-weight: 900; }
+        .total-box .score { font-size: 1.3rem; font-weight: 900; color: #74c0fc; margin-top: 4px; }
+
+        .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+        .action-btn { padding: 14px 0; font-size: 1.05rem; font-weight: 900; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.2); -webkit-tap-highlight-color: transparent; }
+        .btn-finish { background-color: var(--primary-color); }
+        .btn-save { background-color: var(--secondary-color); }
+        .btn-reset { background-color: var(--danger-color); }
+        .action-btn:active { opacity: 0.9; transform: scale(0.96); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⛳ 파크골프 스코어 매니저</h1>
+        <p>만든사람 계성훈 010-3243-7891</p>
+        #<p>현장 맞춤형 대화면 폰트 적용</p>
+    </header>
+
+    <div class="config-section">
+        <div class="config-title">1. 동반자 이름 입력</div>
+        <div class="player-inputs">
+            <input type="text" id="pName-0" value="플레이어1" oninput="saveSettings()">
+            <input type="text" id="pName-1" value="플레이어2" oninput="saveSettings()">
+            <input type="text" id="pName-2" value="플레이어3" oninput="saveSettings()">
+            <input type="text" id="pName-3" value="플레이어4" oninput="saveSettings()">
+        </div>
+
+        <div class="config-title">2. 코스 선택 및 신규 등록</div>
+        <div class="course-manage">
+            <select id="courseSelect" class="select-box" onchange="loadCourse()">
+                <option value="" disabled selected>코스를 선택하세요</option>
+            </select>
+            <button class="btn-add-course" onclick="addNewCourse()">➕ 코스추가</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 14%">Hole</th>
+                    <th style="width: 12%">Par</th>
+                    <th class="player-th"><span id="th-name-0">P1</span></th>
+                    <th class="player-th"><span id="th-name-1">P2</span></th>
+                    <th class="player-th"><span id="th-name-2">P3</span></th>
+                    <th class="player-th"><span id="th-name-3">P4</span></th>
+                </tr>
+            </thead>
+            <tbody id="scoreBody"></tbody>
+        </table>
+    </div>
+
+    <div class="total-container">
+        <div class="total-box"><div id="tot-name-0" class="name-tag">P1</div><div id="total-0" class="score">0타</div></div>
+        <div class="total-box"><div id="tot-name-1" class="name-tag">P2</div><div id="total-1" class="score">0타</div></div>
+        <div class="total-box"><div id="tot-name-2" class="name-tag">P3</div><div id="total-2" class="score">0타</div></div>
+        <div class="total-box"><div id="tot-name-3" class="name-tag">P4</div><div id="total-3" class="score">0타</div></div>
+    </div>
+
+    <div class="btn-group">
+        <button class="action-btn btn-finish" onclick="finishCourse()">코스 완료</button>
+        <button class="action-btn btn-save" onclick="saveToFile()">결과 저장</button>
+        <button class="action-btn btn-reset" onclick="resetScores(true)">초기화</button>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <input type="file" id="fileInput" accept=".txt" style="display:none;">
+        <button style="width:100%; padding:12px; font-size:1.05rem; font-weight:900; background-color:#0d47a1; color:white; border:none; border-radius:8px; cursor:pointer;" onclick="document.getElementById('fileInput').click();">📂 저장된 파일 불러오기</button>
+    </div>
+
+    <!-- 코스 추가 모달 -->
+    <div id="courseModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:400px; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+            <h2 id="modalTitle" style="margin-bottom:15px; color:#1b5e20; font-weight:900;">코스 이름 입력</h2>
+            <input type="text" id="courseNameInput" placeholder="예: 남해파크골프" style="width:100%; padding:10px; margin-bottom:15px; border:2px solid #adb5bd; border-radius:6px; font-size:1rem;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <button onclick="closeModal()" style="padding:10px; background:#ccc; color:#000; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">취소</button>
+                <button onclick="confirmCourseInput()" style="padding:10px; background:#1b5e20; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">다음</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Par 입력 모달 -->
+    <div id="parModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:400px; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+            <h2 id="parModalTitle" style="margin-bottom:15px; color:#1b5e20; font-weight:900;">1번 홀 Par 입력</h2>
+            <input type="number" id="parInput" min="3" max="5" placeholder="3~5" style="width:100%; padding:10px; margin-bottom:15px; border:2px solid #adb5bd; border-radius:6px; font-size:1.5rem; text-align:center; font-weight:bold;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <button onclick="cancelParInput()" style="padding:10px; background:#ccc; color:#000; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">취소</button>
+                <button onclick="confirmParInput()" style="padding:10px; background:#1b5e20; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">다음</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="ko">
 <head>
