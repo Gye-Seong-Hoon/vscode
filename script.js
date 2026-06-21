@@ -3,13 +3,17 @@
 // 송도 공식 코스 데이터
 var parsA = [3, 4, 4, 3, 4, 3, 3, 5, 4];
 var parsB = [4, 4, 5, 3, 3, 4, 3, 3, 4];
+var parsC = [4, 4, 5, 3, 3, 4, 3, 4, 3];
+var parsD = [4, 3, 4, 4, 3, 5, 3, 4, 3];
 
 var defaultCourses = {
     "송도A": { name: "송도파크골프장 A코스", pars: parsA },
-    "송도B": { name: "송도파크골프장 B코스", pars: parsB }
+    "송도B": { name: "송도파크골프장 B코스", pars: parsB },
+    "아시아드경기장 A코스": { name: "아시아드경기장 A코스", pars: parsA },
+    "아시아드경기장 B코스": { name: "아시아드경기장 B코스", pars: parsB }
 };
 
-var courseData = {};
+var courseData = {}
 var playersScores = [[1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1]];
 var cumulativeHistory = [];
 
