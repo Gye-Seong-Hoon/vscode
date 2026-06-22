@@ -11,10 +11,10 @@ var parsF = [4, 3, 3, 4, 3, 3, 3, 4, 5];
 var defaultCourses = {
     "송도A": { name: "송도파크골프장 A코스", pars: parsA },
     "송도B": { name: "송도파크골프장 B코스", pars: parsB },
-    "아시아드경기장 A코스": { name: "아시아드경기장 A코스", pars: parsA },
-    "아시아드경기장 B코스": { name: "아시아드경기장 B코스", pars: parsB }
-    "아시아드경기장 C코스": { name: "아시아드경기장 C코스", pars: parsA },
-    "아시아드경기장 D코스": { name: "아시아드경기장 D코스", pars: parsB }
+    "아시아드경기장 A코스": { name: "아시아드경기장 A코스", pars: parsC },
+    "아시아드경기장 B코스": { name: "아시아드경기장 B코스", pars: parsD }
+    "아시아드경기장 C코스": { name: "아시아드경기장 C코스", pars: parsE },
+    "아시아드경기장 D코스": { name: "아시아드경기장 D코스", pars: parsF }
 };
 
 var courseData = {}
