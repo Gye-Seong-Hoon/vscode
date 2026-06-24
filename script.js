@@ -1,12 +1,12 @@
 // 파크골프 4인 스코어 매니저 - JavaScript
 
 // 송도 공식 코스 데이터
-var parsA = [3, 4, 4, 3, 4, 3, 3, 5, 4];
-var parsB = [4, 4, 5, 3, 3, 4, 3, 3, 4];
-var parsC = [4, 4, 5, 3, 3, 4, 3, 4, 3];
-var parsD = [4, 3, 4, 4, 3, 5, 3, 4, 3];
-var parsE = [4, 3, 3, 5, 4, 3, 3, 4, 4];
-var parsF = [4, 3, 3, 4, 3, 3, 3, 4, 5];
+var parsA =;
+var parsB =;
+var parsC =;
+var parsD =;
+var parsE =;
+var parsF =;
 
 var defaultCourses = {
     "송도A": { name: "송도파크골프장 A코스", pars: parsA },
@@ -17,7 +17,7 @@ var defaultCourses = {
     "아시아드경기장 D코스": { name: "아시아드경기장 D코스", pars: parsF },
 };
 
-var courseData = {}
+var courseData = {};
 var playersScores = [[1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1]];
 var cumulativeHistory = [];
 
@@ -173,7 +173,7 @@ function loadCourse() {
     var courseKey = document.getElementById("courseSelect").value;
     if (!courseData[courseKey]) return;
     var course = courseData[courseKey];
-    resetScores(false);
+    if (typeof resetScores === 'function') resetScores(false);
     for (var h = 0; h < 9; h++) {
         document.getElementById("par-" + h).innerHTML = "<b>" + course.pars[h] + "</b>";
         for (var p = 0; p < 4; p++) {
@@ -230,68 +230,11 @@ function autoSaveCurrentState() {
     localStorage.setItem("pg_backup_state", JSON.stringify(state));
 }
 
-function checkTemporaryStorage() {
-    var backup = localStorage.getItem("pg_backup_state");
-    if (!backup) return;
-    
-    try {
-        var state = JSON.parse(backup);
-        if (!state.courseKey) return; 
-        
-        if (confirm("이전에 기록 중이던 라운딩 점수가 있습니다.\n그대로 불러와서 이어서 작성하시겠습니까?")) {
-            cumulativeHistory = state.history || [];
-            document.getElementById("courseSelect").value = state.courseKey;
-            
-            var course = courseData[state.courseKey];
-            if (!course) return;
-            
-            for (var h = 0; h < 9; h++) {
-                document.getElementById("par-" + h).innerHTML = "<b>" + course.pars[h] + "</b>";
-                for (var p = 0; p < 4; p++) {
-                    var savedScore = state.scores[p][h];
-                    playersScores[p][h] = savedScore;
-                    
-                    var inputEl = document.getElementById("txt-" + p + "-" + h);
-                    inputEl.value = savedScore === 0 ? "" : savedScore;
-                    
-                    if (savedScore !== 1 && savedScore !== 0) {
-                        inputEl.classList.add("changed");
-                    }
-                }
-            }
-            updateTotals();
-        } else {
-            localStorage.removeItem("pg_backup_state");
-        }
-    } catch(e) {
-        console.log("백업 복원 실패", e);
-    }
-}
-
-function finishCourse() {
-    var courseKey = document.getElementById("courseSelect").value;
-    if (!courseKey) { alert("코스를 선택해 주세요."); return; }
-    var currentNames = [];
-    for(var i=0; i<4; i++) {
-        currentNames.push(document.getElementById("pName-" + i).value.trim() || ("플레이어" + (i+1)));
-    }
-    cumulativeHistory.push({
-        name: courseData[courseKey].name,
-        names: currentNames,
-        scores: playersScores.map(function(arr) { return arr.slice(); })
-    });
-    alert("[" + courseData[courseKey].name + "] 기록이 임시 저장되었습니다.");
-    autoSaveCurrentState();
-}
-
-// ... (위쪽 코스 데이터 및 변수 선언 부분은 그대로 유지)
-
 function saveToFile() {
     if (cumulativeHistory.length === 0) {
         var courseKey = document.getElementById("courseSelect").value;
         if (courseKey) { 
-            // 현재 입력 중인 코스가 있다면 종료 처리 후 저장 흐름으로 진행
-            finishCourse(); 
+            if (typeof finishCourse === 'function') finishCourse(); 
         } else { 
             alert("저장할 기록이 없습니다."); 
             return; 
@@ -303,7 +246,7 @@ function saveToFile() {
     var timeStr = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
     
     var txt = "=== 파크골프 결과 (" + dateStr + " " + timeStr + ") ===\n\n";
-    var grandTotals =;
+    var grandTotals =; 
     var lastPlayerNames = cumulativeHistory[cumulativeHistory.length - 1].names;
 
     cumulativeHistory.forEach(function(history) {
@@ -323,10 +266,8 @@ function saveToFile() {
     }
     txt += "============================================================\n";
 
-    // 파일 이름 정의
     var filename = "파크골프_결과_" + dateStr.replace(/-/g,'') + ".txt";
 
-    // 1단계: 모바일 호환성이 높은 DOM 추가 방식의 파일 다운로드 시도
     var blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -337,13 +278,12 @@ function saveToFile() {
         link.click();
         document.body.removeChild(link);
     } catch (e) {
-        console.log("기본 다운로드 실패, 대체 방식을 사용합니다.");
+        console.log("다운로드 실패");
     }
 
-    // 2단계: 모바일 브라우저를 위한 클립보드 자동 복사 백업 (안전장치)
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(txt).then(function() {
-            alert("점수가 저장(다운로드)되었습니다.\n\n※ 모바일 기기 특성상 파일이 안 보일 경우를 대비해 '결과 텍스트'를 클립보드에 자동 복사했습니다. 카카오톡이나 메모장에 붙여넣기(포커스 후 꾹 누르기) 하여 보관하실 수 있습니다.");
+            alert("기록이 저장되었습니다.\n\n※ 파일이 안 보일 경우 결과 텍스트가 클립보드에 자동 복사되었으니 카카오톡이나 메모장에 바로 '붙여넣기' 하세요.");
         }).catch(function() {
             fallbackCopyToClipboard(txt);
         });
@@ -351,34 +291,27 @@ function saveToFile() {
         fallbackCopyToClipboard(txt);
     }
     
-    // 데이터 초기화 및 백업 삭제
     cumulativeHistory = []; 
     localStorage.removeItem("pg_backup_state");
-    
-    // UI 리셋 (필요시 호출하도록 함수 구현 확인 필요)
-    if (typeof resetScores === 'function') {
-        resetScores(true);
-    }
+    if (typeof resetScores === 'function') resetScores(true);
 }
 
-// 구형 모바일 브라우저용 텍스트 복사 우회 함수
 function fallbackCopyToClipboard(text) {
     var textArea = document.createElement("textarea");
     textArea.value = text;
-    textArea.style.position = "fixed";  // 화면 밖으로 숨김
+    textArea.style.position = "fixed";
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
     try {
         document.execCommand('copy');
-        alert("점수가 저장되었습니다.\n\n※ 파일이 다운로드되지 않았다면 결과가 복사되었으니 메모장이나 카카오톡에 붙여넣으세요.");
+        alert("기록이 저장되었습니다.\n\n※ 파일이 안 보일 경우 메모장이나 카카오톡에 붙여넣기 하세요.");
     } catch (err) {
-        alert("저장 처리에 실패했습니다. 화면의 점수를 확인해주세요.");
+        alert("기록 복사에 실패했습니다.");
     }
     document.body.removeChild(textArea);
 }
 
-// 이전 코드에서 끊겼던 임시 저장소 복구 마무리 로직
 function checkTemporaryStorage() {
     var backup = localStorage.getItem("pg_backup_state");
     if (!backup) return;
@@ -410,77 +343,9 @@ function checkTemporaryStorage() {
             }
             updateTotals();
         } else {
-            // 불러오지 않을 경우 백업 초기화
             localStorage.removeItem("pg_backup_state");
         }
     } catch (e) {
-        console.error("백업 데이터를 불러오는 중 오류가 발생했습니다.", e);
+        console.error("백업 데이터 복구 실패", e);
     }
-}
-
-
-// 파일 불러오기 기능
-document.addEventListener('DOMContentLoaded', function() {
-    var fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            var file = e.target.files[0];
-            if (!file) return;
-            
-            var reader = new FileReader();
-            reader.onload = function(event) {
-                var content = event.target.result;
-                showLoadedFile(content);
-            };
-            reader.readAsText(file);
-        });
-    }
-});
-
-function showLoadedFile(content) {
-    // 모달 생성
-    var modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; display:flex; align-items:center; justify-content:center;';
-    
-    var container = document.createElement('div');
-    container.style.cssText = 'background:white; padding:20px; border-radius:10px; width:95%; max-width:600px; max-height:80vh; overflow-y:auto; box-shadow:0 4px 20px rgba(0,0,0,0.3);';
-    
-    var title = document.createElement('h2');
-    title.innerText = '저장된 결과';
-    title.style.cssText = 'color:#1b5e20; font-weight:900; margin-bottom:15px; border-bottom:3px solid #1b5e20; padding-bottom:10px;';
-    
-    var fileContent = document.createElement('pre');
-    fileContent.innerText = content;
-    fileContent.style.cssText = 'background:#f5f5f5; padding:15px; border-radius:6px; font-family:monospace; font-size:0.9rem; line-height:1.6; white-space:pre-wrap; word-wrap:break-word;';
-    
-    var buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px;';
-    
-    var closeBtn = document.createElement('button');
-    closeBtn.innerText = '닫기';
-    closeBtn.style.cssText = 'padding:12px; background:#ccc; color:#000; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:1rem;';
-    closeBtn.onclick = function() {
-        document.body.removeChild(modal);
-        document.getElementById('fileInput').value = '';
-    };
-    
-    var downloadBtn = document.createElement('button');
-    downloadBtn.innerText = '다시 다운로드';
-    downloadBtn.style.cssText = 'padding:12px; background:#0d47a1; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:1rem;';
-    downloadBtn.onclick = function() {
-        var blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-        var link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "파크골프_결과.txt";
-        link.click();
-    };
-    
-    buttonContainer.appendChild(closeBtn);
-    buttonContainer.appendChild(downloadBtn);
-    
-    container.appendChild(title);
-    container.appendChild(fileContent);
-    container.appendChild(buttonContainer);
-    modal.appendChild(container);
-    document.body.appendChild(modal);
 }
