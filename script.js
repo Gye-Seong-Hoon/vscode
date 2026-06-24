@@ -13,8 +13,8 @@ var defaultCourses = {
     "송도B": { name: "송도파크골프장 B코스", pars: parsB },
     "아시아드경기장 A코스": { name: "아시아드경기장 A코스", pars: parsC },
     "아시아드경기장 B코스": { name: "아시아드경기장 B코스", pars: parsD }
-    "아시아드경기장 C코스": { name: "아시아드경기장 C코스", pars: parse },
-    "아시아드경기장 D코스": { name: "아시아드경기장 D코스", pars: parsf }
+    "아시아드경기장 C코스": { name: "아시아드경기장 C코스", pars: parsE },
+    "아시아드경기장 D코스": { name: "아시아드경기장 D코스", pars: parsF }
 };
 
 var courseData = {}
