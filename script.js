@@ -284,16 +284,26 @@ function finishCourse() {
     autoSaveCurrentState();
 }
 
+// ... (위쪽 코스 데이터 및 변수 선언 부분은 그대로 유지)
+
 function saveToFile() {
     if (cumulativeHistory.length === 0) {
         var courseKey = document.getElementById("courseSelect").value;
-        if (courseKey) { finishCourse(); } else { alert("저장할 기록이 없습니다."); return; }
+        if (courseKey) { 
+            // 현재 입력 중인 코스가 있다면 종료 처리 후 저장 흐름으로 진행
+            finishCourse(); 
+        } else { 
+            alert("저장할 기록이 없습니다."); 
+            return; 
+        }
     }
+    
     var now = new Date();
     var dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,'0') + "-" + String(now.getDate()).padStart(2,'0');
     var timeStr = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
+    
     var txt = "=== 파크골프 결과 (" + dateStr + " " + timeStr + ") ===\n\n";
-    var grandTotals = [0, 0, 0, 0];
+    var grandTotals =;
     var lastPlayerNames = cumulativeHistory[cumulativeHistory.length - 1].names;
 
     cumulativeHistory.forEach(function(history) {
@@ -308,41 +318,106 @@ function saveToFile() {
         txt += "------------------------------------------------------------\n\n";
     });
     txt += "============================================================\n★ 최종 종합 성적 ★\n";
-    for (var p = 0; p < 4; p++) { txt += "▶ " + lastPlayerNames[p] + ": 총 " + grandTotals[p] + "타\n"; }
+    for (var p = 0; p < 4; p++) { 
+        txt += "▶ " + lastPlayerNames[p] + ": 총 " + grandTotals[p] + "타\n"; 
+    }
     txt += "============================================================\n";
 
+    // 파일 이름 정의
+    var filename = "파크골프_결과_" + dateStr.replace(/-/g,'') + ".txt";
+
+    // 1단계: 모바일 호환성이 높은 DOM 추가 방식의 파일 다운로드 시도
     var blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "파크골프_결과_" + dateStr.replace(/-/g,'') + ".txt";
-    link.click();
+    link.download = filename;
+    document.body.appendChild(link);
     
+    try {
+        link.click();
+        document.body.removeChild(link);
+    } catch (e) {
+        console.log("기본 다운로드 실패, 대체 방식을 사용합니다.");
+    }
+
+    // 2단계: 모바일 브라우저를 위한 클립보드 자동 복사 백업 (안전장치)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function() {
+            alert("점수가 저장(다운로드)되었습니다.\n\n※ 모바일 기기 특성상 파일이 안 보일 경우를 대비해 '결과 텍스트'를 클립보드에 자동 복사했습니다. 카카오톡이나 메모장에 붙여넣기(포커스 후 꾹 누르기) 하여 보관하실 수 있습니다.");
+        }).catch(function() {
+            fallbackCopyToClipboard(txt);
+        });
+    } else {
+        fallbackCopyToClipboard(txt);
+    }
+    
+    // 데이터 초기화 및 백업 삭제
     cumulativeHistory = []; 
-    localStorage.removeItem("pg_backup_state"); 
+    localStorage.removeItem("pg_backup_state");
+    
+    // UI 리셋 (필요시 호출하도록 함수 구현 확인 필요)
+    if (typeof resetScores === 'function') {
+        resetScores(true);
+    }
 }
 
-function resetScores(isFullReset) {
-    if (isFullReset && !confirm("점수를 초기화하시겠습니까?")) return;
-    
-    for (var p = 0; p < 4; p++) {
-        for (var h = 0; h < 9; h++) {
-            playersScores[p][h] = 1;
-            var inputEl = document.getElementById("txt-" + p + "-" + h);
-            if (inputEl) {
-                inputEl.value = 1;
-                inputEl.classList.remove("changed");
-            }
-        }
+// 구형 모바일 브라우저용 텍스트 복사 우회 함수
+function fallbackCopyToClipboard(text) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";  // 화면 밖으로 숨김
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("점수가 저장되었습니다.\n\n※ 파일이 다운로드되지 않았다면 결과가 복사되었으니 메모장이나 카카오톡에 붙여넣으세요.");
+    } catch (err) {
+        alert("저장 처리에 실패했습니다. 화면의 점수를 확인해주세요.");
     }
-    
-    if (isFullReset) {
-        document.getElementById("courseSelect").value = "";
-        cumulativeHistory = [];
-        localStorage.removeItem("pg_backup_state");
-    }
-    
-    updateTotals();
+    document.body.removeChild(textArea);
 }
+
+// 이전 코드에서 끊겼던 임시 저장소 복구 마무리 로직
+function checkTemporaryStorage() {
+    var backup = localStorage.getItem("pg_backup_state");
+    if (!backup) return;
+    
+    try {
+        var state = JSON.parse(backup);
+        if (!state.courseKey) return; 
+        
+        if (confirm("이전에 기록 중이던 라운딩 점수가 있습니다.\n그대로 불러와서 이어서 작성하시겠습니까?")) {
+            cumulativeHistory = state.history || [];
+            document.getElementById("courseSelect").value = state.courseKey;
+            
+            var course = courseData[state.courseKey];
+            if (!course) return;
+
+            playersScores = state.scores;
+            for (var h = 0; h < 9; h++) {
+                document.getElementById("par-" + h).innerHTML = "<b>" + course.pars[h] + "</b>";
+                for (var p = 0; p < 4; p++) {
+                    var inputEl = document.getElementById("txt-" + p + "-" + h);
+                    var val = playersScores[p][h];
+                    inputEl.value = val;
+                    if (val !== 1) {
+                        inputEl.classList.add("changed");
+                    } else {
+                        inputEl.classList.remove("changed");
+                    }
+                }
+            }
+            updateTotals();
+        } else {
+            // 불러오지 않을 경우 백업 초기화
+            localStorage.removeItem("pg_backup_state");
+        }
+    } catch (e) {
+        console.error("백업 데이터를 불러오는 중 오류가 발생했습니다.", e);
+    }
+}
+
 
 // 파일 불러오기 기능
 document.addEventListener('DOMContentLoaded', function() {
