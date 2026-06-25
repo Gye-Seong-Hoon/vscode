@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -111,7 +110,7 @@
     </div>
 
     <div style="margin-bottom: 15px;">
-        <input type="file" id="fileInput" accept=".txt" style="display:none;" onchange="handleFileLoad(event)">
+        <input type="file" id="fileInput" accept=".txt" style="display:none;">
         <button style="width:100%; padding:12px; font-size:1.05rem; font-weight:900; background-color:#0d47a1; color:white; border:none; border-radius:8px; cursor:pointer;" onclick="document.getElementById('fileInput').click();">📂 저장된 파일 불러오기</button>
     </div>
 
@@ -122,247 +121,90 @@
             <input type="text" id="courseNameInput" placeholder="예: 남해파크골프" style="width:100%; padding:10px; margin-bottom:15px; border:2px solid #adb5bd; border-radius:6px; font-size:1rem;">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <button onclick="closeModal()" style="padding:10px; background:#ccc; color:#000; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">취소</button>
-                <button onclick="confirmCourseInput()" style="padding:10px; background:var(--primary-color); color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">다음</button>
+                <button onclick="confirmCourseInput()" style="padding:10px; background:#1b5e20; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">다음</button>
             </div>
         </div>
     </div>
 
-    <!-- 파 입력 모달 -->
+    <!-- Par 입력 모달 -->
     <div id="parModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
         <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:400px; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
             <h2 id="parModalTitle" style="margin-bottom:15px; color:#1b5e20; font-weight:900;">1번 홀 Par 입력</h2>
-            <input type="number" id="parInput" value="4" min="3" max="5" style="width:100%; padding:10px; margin-bottom:15px; border:2px solid #adb5bd; border-radius:6px; font-size:1.5rem; text-align:center; font-weight:bold;">
+            <input type="number" id="parInput" min="3" max="5" placeholder="3~5" style="width:100%; padding:10px; margin-bottom:15px; border:2px solid #adb5bd; border-radius:6px; font-size:1.5rem; text-align:center; font-weight:bold;">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <button onclick="cancelParInput()" style="padding:10px; background:#ccc; color:#000; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">취소</button>
-                <button onclick="confirmParInput()" style="padding:10px; background:var(--primary-color); color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">확인</button>
+                <button onclick="confirmParInput()" style="padding:10px; background:#1b5e20; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">다음</button>
             </div>
         </div>
     </div>
 
-    <!-- 스크립트 로직부 -->
-    <script>
-                var parsA =;
-        var parsB =;
-        var parsC =;
-        var parsD =;
-        var parsE =;
-        var parsF =;
-        var defaultCourses = {
-            "송도A": { name: "송도파크골프장 A코스", pars: parsA },
-            "송도B": { name: "송도파크골프장 B코스", pars: parsB },
-            "아시아드경기장 A코스": { name: "아시아드경기장 A코스", pars: parsC },
-            "아시아드경기장 B코스": { name: "아시아드경기장 B코스", pars: parsD },
-            "아시아드경기장 C코스": { name: "아시아드경기장 C코스", pars: parsE },
-            "아시아드경기장 D코스": { name: "아시아드경기장 D코스", pars: parsF },
-        };
-        var courseData = {}, playersScores = [[1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1]], cumulativeHistory = [];
-        var addingCourseName = "", addingCoursePars = [], currentParHole = 1;
-        window.onload = function() {
-            localStorage.removeItem("pg_courses");
-            courseData = Object.assign({}, defaultCourses);
-            localStorage.setItem("pg_courses", JSON.stringify(courseData));
-            loadSettings(); initTable(); updateNameUI(); checkTemporaryStorage();
-        };
-        function loadSettings() {
-            for (var i = 0; i < 4; i++) {
-                var savedName = localStorage.getItem("pg_name_" + i);
-                if (savedName) document.getElementById("pName-" + i).value = savedName;
-            }
-            refreshCourseDropdown();
-        }
-        function saveSettings() {
-            for (var i = 0; i < 4; i++) {
-                var nameVal = document.getElementById("pName-" + i).value.trim() || ("플레이어" + (i+1));
-                localStorage.setItem("pg_name_" + i, nameVal);
-            }
-            updateNameUI(); autoSaveCurrentState();
-        }
-        function updateNameUI() {
-            for (var i = 0; i < 4; i++) {
-                var name = document.getElementById("pName-" + i).value.trim() || ("플레이어" + (i+1));
-                document.getElementById("th-name-" + i).innerText = name;
-                document.getElementById("tot-name-" + i).innerText = name;
-            }
-        }
-        function refreshCourseDropdown() {
-            var select = document.getElementById("courseSelect");
-            select.innerHTML = '<option value="" disabled selected>코스를 선택하세요</option>';
-            Object.keys(courseData).forEach(function(key) {
-                var opt = document.createElement("option"); opt.value = key; opt.innerText = courseData[key].name; select.appendChild(opt);
-            });
-        }
-        function addNewCourse() {
-            addingCourseName = ""; addingCoursePars = []; currentParHole = 1;
-            document.getElementById("courseNameInput").value = ""; showModal("courseModal");
-        }
-        function closeModal() { document.getElementById("courseModal").style.display = "none"; document.getElementById("parModal").style.display = "none"; }
-        function showModal(modalId) { document.getElementById(modalId).style.display = "flex"; }
-        function confirmCourseInput() {
-            var name = document.getElementById("courseNameInput").value.trim();
-            if (!name) { alert("코스 이름을 입력해주세요."); return; }
-            addingCourseName = name; addingCoursePars = []; currentParHole = 1;
-            document.getElementById("courseModal").style.display = "none"; startParInput();
-        }
-        function startParInput() {
-            if (currentParHole <= 9) {
-                document.getElementById("parModalTitle").innerText = currentParHole + "번 홀 Par 입력";
-                document.getElementById("parInput").value = "4"; document.getElementById("parInput").focus(); showModal("parModal");
-            } else { finishCourseAdding(); }
-        }
-        function confirmParInput() {
-            var parInput = document.getElementById("parInput").value.trim();
-            var parNum = parseInt(parInput, 10);
-            if (isNaN(parNum) || parNum < 3 || parNum > 5) { alert("3, 4, 5 중 하나를 입력해주세요."); return; }
-            addingCoursePars.push(parNum); currentParHole++;
-            if (currentParHole <= 9) { startParInput(); } else { finishCourseAdding(); }
-        }
-        function cancelParInput() {
-            if (confirm("코스 추가를 취소하시겠습니까?")) { closeModal(); addingCourseName = ""; addingCoursePars = []; } else { startParInput(); }
-        }
-        function finishCourseAdding() {
-            closeModal(); var newKey = "custom_" + Date.now();
-            courseData[newKey] = { name: addingCourseName, pars: addingCoursePars };
-            localStorage.setItem("pg_courses", JSON.stringify(courseData));
-            refreshCourseDropdown(); document.getElementById("courseSelect").value = newKey; loadCourse();
-            alert("[" + addingCourseName + "] 코스가 등록되었습니다!");
-        }
-        function initTable() {
-            var tbody = document.getElementById("scoreBody"); tbody.innerHTML = "";
-            for (var h = 0; h < 9; h++) {
-                var row = document.createElement("tr");
-                row.innerHTML = "<td><b>" + (h + 1) + "</b></td><td id='par-" + h + "'>-</td>" +
-                                "<td><input type='text' inputmode='numeric' pattern='[0-9]*' id='txt-0-" + h + "' class='score-input' value='-' oninput='onInputChange(0, " + h + ")' onclick='this.select()'></td>" +
-                                "<td><input type='text' inputmode='numeric' pattern='[0-9]*' id='txt-1-" + h + "' class='score-input' value='-' oninput='onInputChange(1, " + h + ")' onclick='this.select()'></td>" +
-                                "<td><input type='text' inputmode='numeric' pattern='[0-9]*' id='txt-2-" + h + "' class='score-input' value='-' oninput='onInputChange(2, " + h + ")' onclick='this.select()'></td>" +
-                                "<td><input type='text' inputmode='numeric' pattern='[0-9]*' id='txt-3-" + h + "' class='score-input' value='-' oninput='onInputChange(3, " + h + ")' onclick='this.select()'></td>";
-                tbody.appendChild(row);
-            }
-        }
-        function loadCourse() {
-            var courseKey = document.getElementById("courseSelect").value;
-            if (!courseData[courseKey]) return;
-            var course = courseData[courseKey]; resetScores(false);
-            for (var h = 0; h < 9; h++) {
-                document.getElementById("par-" + h).innerHTML = "<b>" + course.pars[h] + "</b>";
-                for (var p = 0; p < 4; p++) {
-                    playersScores[p][h] = 1; var inputEl = document.getElementById("txt-" + p + "-" + h);
-                    inputEl.value = 1; inputEl.classList.remove("changed");
-                }
-            }
-            updateTotals(); autoSaveCurrentState();
-        }
-        function onInputChange(p, h) {
-            var courseKey = document.getElementById("courseSelect").value;
-            if (!courseKey) { alert("먼저 코스를 선택해 주세요."); document.getElementById("txt-" + p + "-" + h).value = "-"; return; }
-            var inputEl = document.getElementById("txt-" + p + "-" + h);
-            var val = inputEl.value.replace(/[^0-9]/g, "");
-            if (val === "" || val === "0") { playersScores[p][h] = 0; inputEl.classList.remove("changed"); }
-            else {
-                var num = parseInt(val, 10); if (num > 20) num = 20; playersScores[p][h] = num; inputEl.value = num;
-                if (num !== 1) { inputEl.classList.add("changed"); } else { inputEl.classList.remove("changed"); }
-            }
-            updateTotals(); autoSaveCurrentState();
-        }
-        function updateTotals() {
-            for (var p = 0; p < 4; p++) {
-                var sum = playersScores[p].reduce(function(a, b) { return a + b; }, 0);
-                document.getElementById("total-" + p).innerText = sum + "타";
-            }
-        }
-        function autoSaveCurrentState() {
-            var courseKey = document.getElementById("courseSelect").value;
-            var state = { courseKey: courseKey, scores: playersScores, history: cumulativeHistory };
-            localStorage.setItem("pg_backup_state", JSON.stringify(state));
-        }
-        function checkTemporaryStorage() {
-            var backup = localStorage.getItem("pg_backup_state"); if (!backup) return;
-            try {
-                var state = JSON.parse(backup); if (!state.courseKey) return;
-                if (confirm("이전에 기록 중이던 라운딩 점수가 있습니다.\n그대로 불러와서 이어서 작성하시겠습니까?")) {
-                    cumulativeHistory = state.history || []; document.getElementById("courseSelect").value = state.courseKey;
-                    var course = courseData[state.courseKey]; if (!course) return; playersScores = state.scores;
-                    for (var h = 0; h < 9; h++) {
-                        document.getElementById("par-" + h).innerHTML = "<b>" + course.pars[h] + "</b>";
-                        for (var p = 0; p < 4; p++) {
-                            var val = playersScores[p][h]; var inputEl = document.getElementById("txt-" + p + "-" + h); inputEl.value = val;
-                            if (val !== 1 && val !== 0) { inputEl.classList.add("changed"); } else { inputEl.classList.remove("changed"); }
-                        }
-                    }
-                    updateTotals();
-                } else { localStorage.removeItem("pg_backup_state"); }
-            } catch(e) { console.error(e); }
-        }
-        function resetScores(isCompleteReset) {
-            if (isCompleteReset) {
-                playersScores = [[1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1]];
-                cumulativeHistory = []; document.getElementById("courseSelect").value = ""; initTable(); updateTotals();
-                localStorage.removeItem("pg_backup_state");
-            } else {
-                playersScores = [[1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1]];
-            }
-        }
-        function resetScores(isCompleteReset) {
-            if (isCompleteReset) {
-                playersScores = [[1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1]];
-                cumulativeHistory = []; document.getElementById("courseSelect").value = ""; initTable(); updateTotals();
-                localStorage.removeItem("pg_backup_state");
-            } else {
-                playersScores = [[1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1]];
-            }
-        }
-        function finishCourse() {
-            var courseKey = document.getElementById("courseSelect").value;
-            if (!courseKey) { alert("코스를 먼저 선택하고 스코어를 기록해주세요."); return; }
-            var course = courseData[courseKey]; var currentNames = [];
-            for (var i = 0; i < 4; i++) { currentNames.push(document.getElementById("pName-" + i).value.trim() || ("플레이어" + (i+1))); }
-            var clonedScores = JSON.parse(JSON.stringify(playersScores));
-            cumulativeHistory.push({ name: course.name, names: currentNames, scores: clonedScores });
-            alert("[" + course.name + "] 기록이 임시 저장되었습니다.\n추가 라운딩을 하거나 [결과 저장]을 눌러 전송하세요.");
-            autoSaveCurrentState();
-        }
-        function saveToFile() {
-            if (cumulativeHistory.length === 0) {
-                var courseKey = document.getElementById("courseSelect").value; if (courseKey) { finishCourse(); } else { alert("저장할 기록이 없습니다."); return; }
-            }
-            if (cumulativeHistory.length === 0) { alert("저장할 기록이 없습니다."); return; }
-            var now = new Date();
-            var dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,'0') + "-" + String(now.getDate()).padStart(2,'0');
-            var timeStr = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
-            var txt = "=== 파크골프 결과 (" + dateStr + " " + timeStr + ") ===\n\n";
-            var grandTotals =; var lastPlayerNames = cumulativeHistory[cumulativeHistory.length - 1].names;
-            cumulativeHistory.forEach(function(history) {
-                txt += "■ 코스: " + history.name + "\n------------------------------------------------------------\n";
-                for (var p = 0; p < 4; p++) {
-                    var pScores = history.scores[p]; var pSum = pScores.reduce(function(a, b) { return a + b; }, 0); grandTotals[p] += pSum;
-                    var scoreLine = pScores.map(function(s) { return String(s).padStart(2, ' '); }).join('   ');
-                    txt += history.names[p].padEnd(6, ' ') + "\t|  " + scoreLine + "  | " + pSum + "타\n";
-                }
-                txt += "------------------------------------------------------------\n\n";
-            });
-            txt += "============================================================\n★ 최종 종합 성적 ★\n";
-            for (var p = 0; p < 4; p++) { txt += "▶ " + lastPlayerNames[p] + ": 총 " + grandTotals[p] + "타\n"; }
-            txt += "============================================================\n";
-            var fileName = "파크골프_결과_" + dateStr.replace(/-/g,'') + ".txt";
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([""], "test.txt", { type: "text/plain" })] })) {
-                var file = new File(["\uFEFF" + txt], fileName, { type: "text/plain;charset=utf-8" });
-                navigator.share({ files: [file], title: '파크골프 경기 결과', text: dateStr + ' 파크골프 스코어 기록입니다.' }).then(function() {
-                    cumulativeHistory = []; localStorage.removeItem("pg_backup_state");
-                }).catch(function(error) { if (error.name !== "AbortError") { alert("공유 중 오류가 발생했습니다: " + error.message); } });
-            } else {
-                var blob = new Blob(["\uFEFF" + txt], { type: "text/plain;charset=utf-8" }); var link = document.createElement("a");
-                link.href = URL.createObjectURL(blob); link.download = fileName; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                cumulativeHistory = []; localStorage.removeItem("pg_backup_state");
-                alert("공유를 지원하지 않는 환경이므로 다운로드 폴더에 파일로 저장되었습니다.");
-            }
-        }
-        function handleFileLoad(event) {
-            var file = event.target.files[0]; if (!file) return;
-            var reader = new FileReader();
-            reader.onload = function(e) { var content = e.target.result; alert("불러온 파일의 데이터 분석을 시작합니다:\n\n" + content.substring(0, 150) + "..."); };
-            reader.readAsText(file, "utf-8");
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파크골프 4인 스코어 매니저</title>
+    <style>
+        :root {
+            --primary-color: #1b5e20;
+            --secondary-color: #0d47a1;
+            --danger-color: #b71c1c;
+            --bg-color: #f1f3f5;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+        body { background-color: var(--bg-color); padding: 8px; color: #111; }
+        
+        header { text-align: center; margin: 8px 0; }
+        header h1 { font-size: 1.5rem; color: var(--primary-color); font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        header p { font-size: 0.85rem; color: #444; margin-top: 3px; font-weight: bold; }
+
+        .config-section { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); margin-bottom: 12px; border: 1px solid #ced4da; }
+        .config-title { font-size: 1rem; font-weight: 900; margin-bottom: 8px; color: #222; border-left: 4px solid var(--primary-color); padding-left: 6px; }
+        
+        .player-inputs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+        .player-inputs input { width: 100%; padding: 10px 4px; text-align: center; font-size: 0.95rem; border: 2px solid #adb5bd; border-radius: 6px; font-weight: 900; color: #000; }
+        .player-inputs input:focus { border-color: var(--primary-color); outline: none; background-color: #e8f5e9; }
+
+        .course-manage { display: flex; gap: 6px; margin-bottom: 5px; }
+        .select-box { flex: 1; padding: 12px; font-size: 1.05rem; border: 2.5px solid var(--primary-color); border-radius: 6px; background: white; font-weight: 900; color: #000; }
+        .btn-add-course { padding: 0 14px; font-size: 0.95rem; background-color: #343a40; color: white; border: none; border-radius: 6px; font-weight: 900; cursor: pointer; }
+
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.15); overflow-x: auto; margin-bottom: 12px; border: 1px solid #ced4da; }
+        table { width: 100%; border-collapse: collapse; text-align: center; min-width: 340px; table-layout: fixed; }
+        th, td { padding: 4px 2px; border: 1px solid #dee2e6; font-size: 1rem; }
+        th { background-color: #d4edda; font-weight: 900; color: #111; height: 40px; }
+        th.player-th { background-color: #cce5ff; width: 17%; }
+        th.player-th span { display: block; max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 auto; font-weight: 900; }
+        
+        td b { font-size: 1.1rem; font-weight: 900; }
+
+        .score-input { width: 96%; height: 52px; font-size: 1.6rem; font-weight: 900; text-align: center; border: 2px solid #868e96; border-radius: 6px; background-color: #f8f9fa; color: #000; -webkit-appearance: none; margin: 0 auto; display: block; }
+        .score-input.changed { background-color: #fff3cd; border-color: #ffc107; color: #856404; }
+        .score-input:focus { background-color: #d1ecf1; border-color: var(--secondary-color); outline: none; color: #0c5460; }
+
+        .total-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: #212529; padding: 12px; border-radius: 8px; color: white; text-align: center; margin-bottom: 12px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+        .total-box { font-size: 0.9rem; overflow: hidden; font-weight: bold; }
+        .total-box .name-tag { max-width: 75px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 auto; color: #f8f9fa; font-weight: 900; }
+        .total-box .score { font-size: 1.3rem; font-weight: 900; color: #74c0fc; margin-top: 4px; }
+
+        .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+        .action-btn { padding: 14px 0; font-size: 1.05rem; font-weight: 900; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.2); -webkit-tap-highlight-color: transparent; }
+        .btn-finish { background-color: var(--primary-color); }
+        .btn-save { background-color: var(--secondary-color); }
+        .btn-reset { background-color: var(--danger-color); }
+        .action-btn:active { opacity: 0.9; transform: scale(0.96); }
+    </style>
+</head>
+<body>
+
+  
+
+    <script src="script.js"></script>
+</body>
+</html>
+
 
         
