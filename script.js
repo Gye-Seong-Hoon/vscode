@@ -293,7 +293,7 @@ function saveToFile() {
     var dateStr = now.getFullYear() + "-" + String(now.getMonth()+1).padStart(2,'0') + "-" + String(now.getDate()).padStart(2,'0');
     var timeStr = String(now.getHours()).padStart(2,'0') + ":" + String(now.getMinutes()).padStart(2,'0');
     var txt = "=== 파크골프 결과 (" + dateStr + " " + timeStr + ") ===\n\n";
-    var grandTotals = [0, 0, 0, 0];
+    var grandTotals =;
     var lastPlayerNames = cumulativeHistory[cumulativeHistory.length - 1].names;
 
     cumulativeHistory.forEach(function(history) {
@@ -311,14 +311,41 @@ function saveToFile() {
     for (var p = 0; p < 4; p++) { txt += "▶ " + lastPlayerNames[p] + ": 총 " + grandTotals[p] + "타\n"; }
     txt += "============================================================\n";
 
-    var blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
-    var link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "파크골프_결과_" + dateStr.replace(/-/g,'') + ".txt";
-    link.click();
-    
-    cumulativeHistory = []; 
-    localStorage.removeItem("pg_backup_state"); 
+    var fileName = "파크골프_결과_" + dateStr.replace(/-/g,'') + ".txt";
+
+    // 스마트폰(안드로이드/iOS) 공유 기능 지원 여부 확인
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([""], "test.txt", { type: "text/plain" })] })) {
+        // UTF-8 깨짐 방지를 위해 BOM(\uFEFF)을 텍스트 앞에 추가하여 파일 객체 생성
+        var file = new File(["\uFEFF" + txt], fileName, { type: "text/plain;charset=utf-8" });
+        
+        navigator.share({
+            files: [file],
+            title: '파크골프 결과',
+            text: dateStr + ' 경기 결과 파일입니다.'
+        }).then(function() {
+            // 카카오톡 전송 창이 정상적으로 열린 후 데이터 초기화
+            cumulativeHistory = []; 
+            localStorage.removeItem("pg_backup_state");
+        }).catch(function(error) {
+            // 사용자가 공유를 취소한 경우가 아니라면 에러 메시지 출력
+            if (error.name !== "AbortError") {
+                alert("공유 중 오류가 발생했습니다: " + error.message);
+            }
+        });
+    } else {
+        // PC 브라우저이거나 공유 기능을 지원하지 않는 환경일 때 (다운로드 폴더로 저장)
+        var blob = new Blob(["\uFEFF" + txt], { type: "text/plain;charset=utf-8" });
+        var link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        cumulativeHistory = []; 
+        localStorage.removeItem("pg_backup_state");
+        alert("기기에 파일로 다운로드되었습니다. (다운로드 폴더 확인)");
+    }
 }
 
 function resetScores(isFullReset) {
